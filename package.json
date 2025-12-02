@@ -1,0 +1,35 @@
+{
+  "name": "backend_umkm",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --watch src/server.ts",
+    "start": "bun run src/server.ts",
+    "admin": "cd admin && bun run dev",
+    "create-admin": "bun run src/create-admin.ts"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "@types/bun": "latest",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/midtrans-client": "^1.4.0",
+    "@types/node": "^24.10.1",
+    "drizzle-kit": "^0.31.7"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.8.0",
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.44.7",
+    "hono": "^4.10.6",
+    "jsonwebtoken": "^9.0.2",
+    "midtrans-client": "^1.4.3",
+    "mysql2": "^3.15.3",
+    "tailwind-scrollbar-hide": "^4.0.0",
+    "zod": "^4.1.13"
+  }
+}
