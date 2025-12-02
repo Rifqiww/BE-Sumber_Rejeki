@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import api from "../services/api";
 import {
   Plus,
@@ -37,6 +37,8 @@ export default function Products() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [isLoading, setIsLoading] = useState(true);
 
   const [formData, setFormData] = useState({
@@ -49,6 +51,7 @@ export default function Products() {
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"name-asc" | "stock-desc" | "price-asc">(
     "name-asc"
   );
@@ -58,6 +61,15 @@ export default function Products() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     fetchData();
@@ -78,27 +90,44 @@ export default function Products() {
     }
   };
 
-  const filteredProducts = products
-    .filter(
-      (product) =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "name-asc":
-          return a.name.localeCompare(b.name);
-        case "stock-desc":
-          return b.stock - a.stock;
-        case "price-asc":
-          return a.price - b.price;
-        default:
-          return 0;
-      }
-    });
+  const filteredProducts = useMemo(() => {
+    return products
+      .filter(
+        (product) =>
+          product.name
+            .toLowerCase()
+            .includes(debouncedSearchQuery.toLowerCase()) ||
+          product.description
+            .toLowerCase()
+            .includes(debouncedSearchQuery.toLowerCase())
+      )
+      .sort((a, b) => {
+        switch (sortBy) {
+          case "name-asc":
+            return a.name.localeCompare(b.name);
+          case "stock-desc":
+            return b.stock - a.stock;
+          case "price-asc":
+            return a.price - b.price;
+          default:
+            return 0;
+        }
+      });
+  }, [products, debouncedSearchQuery, sortBy]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const MAX_INT = 2000000000;
+    if (Number(formData.price) > MAX_INT || Number(formData.stock) > MAX_INT) {
+      toast.error(
+        "Nilai harga atau stok terlalu besar (maksimal 2.000.000.000)"
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
       const payload = {
         ...formData,
@@ -135,15 +164,17 @@ export default function Products() {
     } catch (error) {
       console.error("Failed to save product", error);
       toast.error("Gagal menyimpan produk");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleDeleteClick = (id: number) => {
+  const handleDeleteClick = useCallback((id: number) => {
     setProductToDelete(id);
     setDeleteModalOpen(true);
-  };
+  }, []);
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = useCallback(async () => {
     if (!productToDelete) return;
 
     setIsDeleting(true);
@@ -159,9 +190,9 @@ export default function Products() {
       setDeleteModalOpen(false);
       setProductToDelete(null);
     }
-  };
+  }, [productToDelete]);
 
-  const openModal = (product?: Product) => {
+  const openModal = useCallback((product?: Product) => {
     if (product) {
       setEditingProduct(product);
       setFormData({
@@ -183,13 +214,18 @@ export default function Products() {
     }
     setImageFile(null);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setIsModalOpen(false);
     setEditingProduct(null);
     setImageFile(null);
-  };
+  }, []);
+
+  const getImageUrl = useCallback((url: string) => {
+    if (url.startsWith("http")) return url;
+    return `http://localhost:3000${url}`;
+  }, []);
 
   return (
     <div>
@@ -341,8 +377,9 @@ export default function Products() {
                         <div className="h-16 w-16 shrink-0">
                           {product.images && product.images.length > 0 ? (
                             <img
-                              src={`http://localhost:3000${product.images[0].image_url}`}
+                              src={getImageUrl(product.images[0].image_url)}
                               alt={product.name}
+                              loading="lazy"
                               className="h-16 w-16 rounded-2xl object-cover border border-primary/10 shadow-sm group-hover:scale-105 transition-transform"
                             />
                           ) : (
@@ -547,11 +584,17 @@ export default function Products() {
                     </div>
                     <input
                       type="number"
-                      className="w-full pl-12 pr-4 py-4 bg-white border border-primary/5 rounded-2xl focus:ring-4 focus:ring-secondary/10 focus:border-secondary outline-none transition-all duration-300 text-primary font-bold shadow-sm group-hover:shadow-md"
+                      className="w-full pl-12 pr-4 py-4 bg-white border border-primary/5 rounded-2xl focus:ring-4 focus:ring-secondary/10 focus:border-secondary outline-none transition-all duration-300 text-primary font-bold shadow-sm group-hover:shadow-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       value={formData.price}
                       onChange={(e) =>
                         setFormData({ ...formData, price: e.target.value })
                       }
+                      onWheel={(e) => e.currentTarget.blur()}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                          e.preventDefault();
+                        }
+                      }}
                       required
                       min="0"
                       placeholder="0"
@@ -570,11 +613,17 @@ export default function Products() {
                     </div>
                     <input
                       type="number"
-                      className="w-full pl-12 pr-4 py-4 bg-white border border-primary/5 rounded-2xl focus:ring-4 focus:ring-secondary/10 focus:border-secondary outline-none transition-all duration-300 text-primary font-bold shadow-sm group-hover:shadow-md"
+                      className="w-full pl-12 pr-4 py-4 bg-white border border-primary/5 rounded-2xl focus:ring-4 focus:ring-secondary/10 focus:border-secondary outline-none transition-all duration-300 text-primary font-bold shadow-sm group-hover:shadow-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       value={formData.stock}
                       onChange={(e) =>
                         setFormData({ ...formData, stock: e.target.value })
                       }
+                      onWheel={(e) => e.currentTarget.blur()}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                          e.preventDefault();
+                        }
+                      }}
                       required
                       min="0"
                       placeholder="0"
@@ -638,7 +687,9 @@ export default function Products() {
                       src={
                         imageFile
                           ? URL.createObjectURL(imageFile)
-                          : `http://localhost:3000${editingProduct?.images?.[0].image_url}`
+                          : getImageUrl(
+                              editingProduct?.images?.[0].image_url || ""
+                            )
                       }
                       alt="Preview"
                       className="h-16 w-16 object-cover rounded-xl border border-primary/10 shadow-sm"
@@ -675,9 +726,10 @@ export default function Products() {
                 </button>
                 <button
                   type="submit"
-                  className="px-8 py-4 bg-primary text-secondary rounded-2xl font-bold hover:bg-primary-dark shadow-xl shadow-primary/20 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/30 active:translate-y-0 transition-all duration-300 text-sm flex items-center gap-2 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="px-8 py-4 bg-primary text-secondary rounded-2xl font-bold hover:bg-primary-dark shadow-xl shadow-primary/20 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/30 active:translate-y-0 transition-all duration-300 text-sm flex items-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
                 >
-                  {isLoading ? (
+                  {isSubmitting ? (
                     <>
                       <Loader2 className="animate-spin" size={18} />
                       Menyimpan...

@@ -34,6 +34,7 @@ export const create = async (c: Context) => {
 export const update = async (c: Context) => {
   const id = Number(c.req.param("id"));
   const body = await c.req.json();
+  console.log("Update Product Body:", body);
   const result = await updateProduct(id, body);
   return apiResponse(c, 200, "Product updated", result);
 };
