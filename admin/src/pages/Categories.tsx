@@ -103,10 +103,10 @@ export default function Categories() {
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row justify-end items-start md:items-center mb-8 gap-4">
+      <div className="flex flex-col md:flex-row justify-end items-start md:items-center mb-8 gap-4 pt-2">
         <button
           onClick={() => openModal()}
-          className="bg-primary text-secondary px-6 py-3 rounded-2xl flex items-center gap-2 hover:bg-primary-dark shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all font-bold"
+          className="bg-primary text-secondary px-6 py-3 rounded-2xl flex items-center gap-2 hover:bg-primary-dark shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all font-bold cursor-pointer"
         >
           <Plus size={20} />
           Tambah Kategori
