@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { drizzleDb as db } from "../../config/database";
 import { categories } from "../../db/schema";
 
@@ -29,5 +29,16 @@ export const updateCategory = async (
 
 export const deleteCategory = async (id: number) => {
   await db.delete(categories).where(eq(categories.id, id));
+
+  // Check if table is empty
+  const [countResult] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(categories);
+
+  if (countResult && countResult.count === 0) {
+    // Reset auto increment
+    await db.execute(sql`ALTER TABLE category AUTO_INCREMENT = 1`);
+  }
+
   return true;
 };

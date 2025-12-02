@@ -48,7 +48,8 @@ export const uploadImage = async (c: Context) => {
   const id = Number(c.req.param("id"));
   const body = await c.req.parseBody();
   const file = body["image"];
-  const provider = body["provider"] || "local";
+  // Default to cloudinary as requested
+  const provider = body["provider"] || "cloudinary";
 
   if (!file || !(file instanceof File)) {
     return apiResponse(c, 400, "No image uploaded");
@@ -64,7 +65,7 @@ export const uploadImage = async (c: Context) => {
       fs.writeFileSync(tempPath, buffer);
 
       const uploadResult = await cloudinary.uploader.upload(tempPath, {
-        folder: "umkm_mamah/product",
+        folder: "umkm-mamah/product", // Updated to match screenshot
         resource_type: "auto",
       });
 
