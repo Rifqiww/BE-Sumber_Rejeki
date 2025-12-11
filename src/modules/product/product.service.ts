@@ -1,6 +1,7 @@
 import { eq, desc } from "drizzle-orm";
 import { drizzleDb as db } from "../../config/database";
 import { products, productsImages } from "../../db/schema";
+import cloudinary from "../../config/cloudinary";
 
 export const getAllProducts = async () => {
   return await db.query.products.findMany({
@@ -46,7 +47,50 @@ export const updateProduct = async (
 };
 
 export const deleteProduct = async (id: number) => {
-  // Manually cascade delete images first
+  // 1. Get images first
+  const existingImages = await db.query.productsImages.findMany({
+    where: eq(productsImages.product_id, id),
+  });
+
+  // 2. Delete images from Cloudinary
+  if (existingImages.length > 0) {
+    for (const image of existingImages) {
+      if (image.image_url) {
+        try {
+          // Extract public_id from URL
+          // Example: https://res.cloudinary.com/.../image/upload/v12345/folder/image.jpg
+          // We assume structure involves /upload/ and potentially versioning.
+          const uploadIndex = image.image_url.indexOf("/upload/");
+          if (uploadIndex !== -1) {
+            let publicIdPath = image.image_url.substring(uploadIndex + 8); // after /upload/
+            // Remove version if present (v12345/)
+            if (publicIdPath.startsWith("v")) {
+              const versionEnd = publicIdPath.indexOf("/");
+              if (versionEnd !== -1) {
+                publicIdPath = publicIdPath.substring(versionEnd + 1);
+              }
+            }
+            // Remove extension
+            const lastDot = publicIdPath.lastIndexOf(".");
+            if (lastDot !== -1) {
+              publicIdPath = publicIdPath.substring(0, lastDot);
+            }
+
+            if (publicIdPath) {
+              await cloudinary.uploader.destroy(publicIdPath);
+            }
+          }
+        } catch (error) {
+          console.error(
+            `Failed to delete image from Cloudinary: ${image.image_url}`,
+            error
+          );
+        }
+      }
+    }
+  }
+
+  // 3. Manually cascade delete images first
   await db.delete(productsImages).where(eq(productsImages.product_id, id));
   await db.delete(products).where(eq(products.id, id));
   return true;

@@ -3,6 +3,7 @@ import { drizzleDb as db } from "../../config/database";
 import { users } from "../../db/schema";
 import { signToken } from "../../utils/jwt";
 import bcrypt from "bcryptjs";
+import { HTTPException } from "hono/http-exception";
 
 export const register = async (data: typeof users.$inferInsert) => {
   const existingUser = await db
@@ -10,7 +11,7 @@ export const register = async (data: typeof users.$inferInsert) => {
     .from(users)
     .where(eq(users.email, data.email));
   if (existingUser.length > 0) {
-    throw new Error("Email already exists");
+    throw new HTTPException(409, { message: "Email already exists" });
   }
 
   const hashedPassword = await bcrypt.hash(data.password, 10);
@@ -29,13 +30,13 @@ export const login = async (data: typeof users.$inferInsert) => {
     .where(eq(users.email, data.email));
   if (!user) {
     console.log("User not found");
-    throw new Error("Invalid credentials");
+    throw new HTTPException(401, { message: "Invalid credentials" });
   }
 
   const isMatch = await bcrypt.compare(data.password, user.password);
   if (!isMatch) {
     console.log("Password mismatch");
-    throw new Error("Invalid credentials");
+    throw new HTTPException(401, { message: "Invalid credentials" });
   }
 
   const token = signToken({ id: user.id, email: user.email, role: user.role });
@@ -47,7 +48,7 @@ export const login = async (data: typeof users.$inferInsert) => {
 
 export const getMe = async (userId: number) => {
   const [user] = await db.select().from(users).where(eq(users.id, userId));
-  if (!user) throw new Error("User not found");
+  if (!user) throw new HTTPException(404, { message: "User not found" });
 
   const { password, ...userWithoutPassword } = user;
   return userWithoutPassword;
