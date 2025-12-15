@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard.tsx";
 import Products from "./pages/Products.tsx";
 import Categories from "./pages/Categories.tsx";
 import Orders from "./pages/Orders.tsx";
+import NotFound from "./pages/NotFound.tsx";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -63,6 +64,7 @@ function App() {
             <Route path="categories" element={<Categories />} />
             <Route path="orders" element={<Orders />} />
           </Route>
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -160,29 +160,6 @@ export default function Layout() {
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-secondary/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
 
-        {/* Header */}
-        <header className="h-24 flex items-center justify-between px-8 z-10">
-          <div>
-            <h2 className="text-3xl font-bold text-primary tracking-tight">
-              {navItems.find((i) => i.path === location.pathname)?.label ||
-                "Dashboard"}
-            </h2>
-            <p className="text-quaternary font-medium mt-1">
-              Selamat datang kembali, {user?.name}
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full border border-primary/5 text-sm font-medium text-primary shadow-sm">
-              {new Date().toLocaleDateString("id-ID", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </div>
-          </div>
-        </header>
-
         {/* Page Content */}
         <main className="flex-1 overflow-auto px-8 pb-8 custom-scrollbar">
           <div className="max-w-7xl mx-auto animate-fade-in">
