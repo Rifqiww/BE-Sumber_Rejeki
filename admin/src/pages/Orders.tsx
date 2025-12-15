@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import { Eye, Search, X } from "lucide-react";
+import PageHeader from "../components/PageHeader";
 
 interface Order {
   id: number;
@@ -59,9 +60,10 @@ export default function Orders() {
         return "bg-tertiary/50 text-quaternary border-tertiary-dark/20";
     }
   };
-
   return (
+    
     <div>
+      <PageHeader title="Pesanan" description="Halaman untuk mengelola pesanan" />
       <div className="bg-[#FFFBF2] rounded-4xl shadow-sm border border-primary/5 overflow-hidden">
         <div className="p-6 border-b border-primary/5 flex gap-4 bg-tertiary/30">
           <div className="relative flex-1 max-w-md">
@@ -72,7 +74,7 @@ export default function Orders() {
             <input
               type="text"
               placeholder="Cari pesanan..."
-              className="w-full pl-12 pr-4 py-3 bg-white border-2 border-transparent focus:border-secondary rounded-2xl focus:ring-0 text-primary placeholder-quaternary/50 font-medium transition-all shadow-sm"
+              className="w-full pl-12 pr-4 py-3 bg-white border-2 border-transparent focus:border-secondary rounded-2xl focus:ring-0 text-primary placeholder-quaternary/50 font-medium transition-all shadow-sm focus:outline-none"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />

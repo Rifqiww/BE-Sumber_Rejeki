@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
-import { Plus, Pencil, Trash2, X, Search, Tags, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
+import PageHeader from "../components/PageHeader";
+import CategoryFormModal from "../components/CategoryFormModal";
 
 interface Category {
   id: number;
@@ -13,7 +15,6 @@ export default function Categories() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -39,27 +40,6 @@ export default function Categories() {
   const filteredCategories = categories.filter((category) =>
     category.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (editingCategory) {
-        await api.put(`/categories/${editingCategory.id}`, { name });
-      } else {
-        await api.post("/categories", { name });
-      }
-      fetchCategories();
-      closeModal();
-      toast.success(
-        editingCategory
-          ? "Kategori berhasil diperbarui"
-          : "Kategori berhasil ditambahkan"
-      );
-    } catch (error) {
-      console.error("Failed to save category", error);
-      toast.error("Gagal menyimpan kategori");
-    }
-  };
 
   const handleDeleteClick = (id: number) => {
     setCategoryToDelete(id);
@@ -87,10 +67,8 @@ export default function Categories() {
   const openModal = (category?: Category) => {
     if (category) {
       setEditingCategory(category);
-      setName(category.name);
     } else {
       setEditingCategory(null);
-      setName("");
     }
     setIsModalOpen(true);
   };
@@ -98,36 +76,39 @@ export default function Categories() {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingCategory(null);
-    setName("");
   };
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row justify-end items-start md:items-center mb-8 gap-4 pt-2">
-        <button
-          onClick={() => openModal()}
-          className="bg-primary text-secondary px-6 py-3 rounded-2xl flex items-center gap-2 hover:bg-primary-dark shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all font-bold cursor-pointer"
-        >
-          <Plus size={20} />
-          Tambah Kategori
-        </button>
-      </div>
+      <PageHeader
+        title="Kategori"
+        description="Halaman untuk mengelola kategori"
+      />
 
       <div className="bg-[#FFFBF2] rounded-4xl shadow-sm border border-primary/5 overflow-hidden">
-        <div className="p-6 border-b border-primary/5 flex gap-4 bg-tertiary/30">
-          <div className="relative flex-1 max-w-md">
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-quaternary"
-              size={20}
-            />
-            <input
-              type="text"
-              placeholder="Cari kategori..."
-              className="w-full pl-12 pr-4 py-3 bg-white border-2 border-transparent focus:border-secondary rounded-2xl focus:ring-0 text-primary placeholder-quaternary/50 font-medium transition-all shadow-sm"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+        <div className="flex justify-between items-center p-6">
+          <div className="border-b border-primary/5 flex gap-4 bg-tertiary/30 min-w-2xl">
+            <div className="relative flex-1 max-w-md">
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-quaternary"
+                size={20}
+              />
+              <input
+                type="text"
+                placeholder="Cari kategori..."
+                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-transparent focus:border-secondary rounded-2xl focus:ring-0 text-primary placeholder-quaternary/50 font-medium transition-all shadow-sm focus:outline-none"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
+          <button
+            onClick={() => openModal()}
+            className="bg-primary text-secondary px-6 py-3 rounded-2xl flex items-center gap-2 hover:bg-primary-dark shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all font-bold cursor-pointer"
+          >
+            <Plus size={20} />
+            Tambah Kategori
+          </button>
         </div>
 
         <div className="overflow-x-auto scrollbar-hide">
@@ -202,73 +183,15 @@ export default function Categories() {
         </div>
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-primary/40 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all duration-300">
-          <div className="bg-[#FFFBF2] rounded-[2.5rem] w-full max-w-md shadow-2xl animate-scale-in border border-white/20 ring-1 ring-primary/5">
-            <div className="flex justify-between items-center p-8 border-b border-primary/5 sticky top-0 bg-[#FFFBF2]/95 backdrop-blur-sm z-10">
-              <div>
-                <h2 className="text-2xl font-bold text-primary tracking-tight">
-                  {editingCategory ? "Edit Kategori" : "Tambah Kategori"}
-                </h2>
-                <p className="text-sm text-quaternary font-medium mt-1">
-                  Kelola nama kategori produk
-                </p>
-              </div>
-              <button
-                onClick={closeModal}
-                className="text-quaternary hover:text-primary hover:bg-tertiary p-2.5 rounded-full transition-all duration-300 hover:rotate-90"
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-8 space-y-8">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-primary/70 uppercase tracking-wider ml-1">
-                  Nama Kategori
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Tags className="h-5 w-5 text-quaternary group-focus-within:text-secondary transition-colors duration-300" />
-                  </div>
-                  <input
-                    type="text"
-                    className="w-full pl-12 pr-4 py-4 bg-white border border-primary/5 rounded-2xl focus:ring-4 focus:ring-secondary/10 focus:border-secondary outline-none transition-all duration-300 text-primary placeholder-quaternary/30 font-bold shadow-sm group-hover:shadow-md"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    placeholder="Contoh: Makanan"
-                    autoFocus
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-primary/5">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="px-6 py-4 text-quaternary hover:bg-tertiary/50 rounded-2xl font-bold transition-all duration-300 text-sm"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-8 py-4 bg-primary text-secondary rounded-2xl font-bold hover:bg-primary-dark shadow-xl shadow-primary/20 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/30 active:translate-y-0 transition-all duration-300 text-sm flex items-center gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="animate-spin" size={18} />
-                      Menyimpan...
-                    </>
-                  ) : (
-                    <>Simpan Kategori</>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CategoryFormModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        onSuccess={() => {
+          fetchCategories();
+          closeModal();
+        }}
+        editingCategory={editingCategory}
+      />
 
       <DeleteConfirmationModal
         isOpen={deleteModalOpen}

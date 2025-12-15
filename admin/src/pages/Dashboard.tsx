@@ -8,6 +8,7 @@ import {
   Check,
 } from "lucide-react";
 import { useState } from "react";
+import PageHeader from "../components/PageHeader";
 
 export default function Dashboard() {
   const [timeRange, setTimeRange] = useState("7 Hari Terakhir");
@@ -48,7 +49,8 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="p-2">
+    <div>
+      <PageHeader title="Dashboard" description="Selamat datang di dashboard Admin" />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
