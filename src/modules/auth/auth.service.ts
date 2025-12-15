@@ -30,13 +30,13 @@ export const login = async (data: typeof users.$inferInsert) => {
     .where(eq(users.email, data.email));
   if (!user) {
     console.log("User not found");
-    throw new HTTPException(401, { message: "Invalid credentials" });
+    throw new HTTPException(401, { message: "Email not registered" });
   }
 
   const isMatch = await bcrypt.compare(data.password, user.password);
   if (!isMatch) {
     console.log("Password mismatch");
-    throw new HTTPException(401, { message: "Invalid credentials" });
+    throw new HTTPException(401, { message: "Wrong Password" });
   }
 
   const token = signToken({ id: user.id, email: user.email, role: user.role });
