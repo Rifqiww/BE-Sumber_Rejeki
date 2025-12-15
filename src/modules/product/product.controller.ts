@@ -10,7 +10,7 @@ import {
 import { productSchema } from "./product.schema";
 import { apiResponse } from "../../utils/response";
 import cloudinary from "../../config/cloudinary";
-import fs from "fs";
+import { compressAndUpload } from "../../services/imageOptimization";
 
 export const getProducts = async (c: Context) => {
   const result = await getAllProducts();
@@ -49,47 +49,32 @@ export const uploadImage = async (c: Context) => {
   const id = Number(c.req.param("id"));
   const body = await c.req.parseBody();
   const file = body["image"];
-  // Default to cloudinary as requested
-  const provider = body["provider"] || "cloudinary";
 
   if (!file || !(file instanceof File)) {
     return apiResponse(c, 400, "No image uploaded");
   }
 
-  let imageUrl = "";
-
-  if (provider === "cloudinary") {
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const tempPath = `temp_${Date.now()}_${file.name}`;
-      fs.writeFileSync(tempPath, buffer);
-
-      const uploadResult = await cloudinary.uploader.upload(tempPath, {
-        folder: "umkm-mamah/product", // Updated to match screenshot
-        resource_type: "auto",
-      });
-
-      imageUrl = uploadResult.secure_url;
-      fs.unlinkSync(tempPath);
-    } catch (error) {
-      console.error("Cloudinary upload error:", error);
-      return apiResponse(c, 500, "Failed to upload to Cloudinary");
-    }
-  } else {
-    // Local upload
-    const fileName = `${Date.now()}-${file.name}`;
-    const path = `./uploads/${fileName}`;
-
-    if (!fs.existsSync("./uploads")) {
-      fs.mkdirSync("./uploads");
-    }
-
+  try {
     const arrayBuffer = await file.arrayBuffer();
-    await Bun.write(path, arrayBuffer);
-    imageUrl = `/uploads/${fileName}`;
-  }
+    const buffer = Buffer.from(arrayBuffer);
 
-  await addProductImage(id, imageUrl, file.name);
-  return apiResponse(c, 200, "Image uploaded successfully", { imageUrl });
+    const { secure_url } = await compressAndUpload(
+      buffer,
+      "umkm-mamah/product"
+    );
+
+    await addProductImage(id, secure_url, file.name);
+
+    return apiResponse(c, 200, "Image uploaded successfully", {
+      imageUrl: secure_url,
+    });
+  } catch (error: any) {
+    console.error("Upload error:", error);
+
+    if (error.message === "Compression timeout") {
+      return apiResponse(c, 500, "Try Upload Again (Compression Timed Out)");
+    }
+
+    return apiResponse(c, 500, "Failed to process upload");
+  }
 };

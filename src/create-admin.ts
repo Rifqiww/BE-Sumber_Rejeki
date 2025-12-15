@@ -17,7 +17,6 @@ const createAdmin = async () => {
   const password = args[2] as string;
 
   try {
-    // Check if user exists
     const existingUser = await db
       .select()
       .from(users)

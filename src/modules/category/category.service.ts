@@ -30,13 +30,11 @@ export const updateCategory = async (
 export const deleteCategory = async (id: number) => {
   await db.delete(categories).where(eq(categories.id, id));
 
-  // Check if table is empty
   const [countResult] = await db
     .select({ count: sql<number>`count(*)` })
     .from(categories);
 
   if (countResult && countResult.count === 0) {
-    // Reset auto increment
     await db.execute(sql`ALTER TABLE category AUTO_INCREMENT = 1`);
   }
 

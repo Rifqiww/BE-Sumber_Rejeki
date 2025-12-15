@@ -13,12 +13,11 @@ import { serveStatic } from "hono/bun";
 
 const app = new Hono();
 
-// Global Middleware
+// Global middleware
 app.use("*", logger());
 app.use("*", corsMiddleware);
 app.use("*", errorMiddleware);
 
-// Serve static files (uploads)
 app.use("/uploads/*", serveStatic({ root: "./" }));
 
 // Routes
@@ -30,7 +29,6 @@ app.route("/payments", paymentRoute);
 app.route("/likes", likesRoute);
 app.route("/reviews", reviewsRoute);
 
-// Health Check
 app.get("/", (c) => c.json({ message: "UMKM Backend API is running" }));
 
 export default app;

@@ -33,10 +33,10 @@ export const createPayment = async (checkoutId: number) => {
   await db.insert(payments).values({
     checkout_id: checkoutId,
     provider: "midtrans",
-    method: "unknown", // Will update via webhook
+    method: "unknown",
     amount: checkout.total_price.toString(),
     status: "pending",
-    transaction_id: transaction.token, // Store token as transaction_id initially or order_id
+    transaction_id: transaction.token,
   });
 
   return { token: transaction.token, redirect_url: transaction.redirect_url };
@@ -54,7 +54,6 @@ export const handleNotification = async (notification: any) => {
     `Transaction notification received. Order ID: ${orderId}. Transaction Status: ${transactionStatus}. Fraud Status: ${fraudStatus}`
   );
 
-  // Extract checkout ID from order_id (ORDER-{id}-{timestamp})
   const checkoutId = parseInt(orderId.split("-")[1]);
 
   let paymentStatus = "pending";
@@ -75,12 +74,6 @@ export const handleNotification = async (notification: any) => {
   } else if (transactionStatus == "pending") {
     paymentStatus = "pending";
   }
-
-  // Update payment record
-  // We need to find the payment record associated with this checkout (or order_id if we stored it)
-  // Since we didn't store order_id in payments table (only transaction_id which was token),
-  // we might need to query by checkout_id and status=pending
-
   await db
     .update(payments)
     .set({
@@ -88,7 +81,6 @@ export const handleNotification = async (notification: any) => {
       method: statusResponse.payment_type,
       paid_at: paymentStatus === "paid" ? new Date() : null,
     })
-    .where(eq(payments.checkout_id, checkoutId)); // This updates all payments for this checkout, ideally should be more specific
-
+    .where(eq(payments.checkout_id, checkoutId));
   return { status: "ok" };
 };

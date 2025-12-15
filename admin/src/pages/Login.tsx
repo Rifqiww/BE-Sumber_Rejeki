@@ -31,8 +31,13 @@ export default function Login() {
       navigate("/");
     } catch (err: any) {
       console.error("Login error:", err);
+      console.log("Error response data:", err.response?.data);
+
       const message =
-        err.response?.data?.message || err.message || "Login failed";
+        err.response?.data?.message ||
+        (typeof err.response?.data === "string" ? err.response.data : "") ||
+        "Login failed: " + (err.response?.statusText || "Server Error");
+
       setError(message);
     } finally {
       setIsLoading(false);
@@ -41,7 +46,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-primary relative overflow-hidden font-sans">
-      {/* Abstract Background Shapes */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
         <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-secondary/10 rounded-full blur-[120px]"></div>
         <div className="absolute bottom-[-10%] left-[-10%] w-[700px] h-[700px] bg-primary-light/10 rounded-full blur-[120px]"></div>

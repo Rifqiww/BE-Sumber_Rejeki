@@ -1,6 +1,7 @@
 import type { Context, Next } from "hono";
 import { verifyToken } from "../utils/jwt";
 import { apiResponse } from "../utils/response";
+import { getMe } from "../modules/auth/auth.service";
 
 export const authMiddleware = async (c: Context, next: Next) => {
   const authHeader = c.req.header("Authorization");
@@ -16,12 +17,18 @@ export const authMiddleware = async (c: Context, next: Next) => {
 
   const decoded = verifyToken(token);
 
-  if (!decoded) {
+  if (!decoded || typeof decoded !== "object" || !("id" in decoded)) {
     return apiResponse(c, 401, "Invalid or expired token");
   }
 
-  c.set("user", decoded);
-  await next();
+  try {
+    // @ts-ignore
+    const user = await getMe(Number(decoded.id));
+    c.set("user", user);
+    await next();
+  } catch (error) {
+    return apiResponse(c, 401, "User not found or access revoked");
+  }
 };
 
 export const adminMiddleware = async (c: Context, next: Next) => {
