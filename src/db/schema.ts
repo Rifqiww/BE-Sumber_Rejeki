@@ -58,6 +58,7 @@ export const categoriesRelations = relations(categories, ({ many }) => ({
 export const products = mysqlTable("product", {
   id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
   name: varchar("name", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
   description: text("description"),
   price: int("price").notNull(),
   stock: int("stock").notNull(), // Changed from enum to int as requested
