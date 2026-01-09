@@ -1,12 +1,8 @@
 import { eq, inArray, desc } from "drizzle-orm";
 import { drizzleDb as db } from "../../config/database";
-import {
-  checkouts,
-  productCheckout,
-  products,
-  addresses,
-} from "../../db/schema";
+import { checkouts, productCheckout, products } from "../../db/schema";
 import { createAddress } from "../address/address.service";
+import { HTTPException } from "hono/http-exception";
 
 interface CheckoutItem {
   product_id: number;
@@ -94,4 +90,20 @@ export const getAllCheckouts = async () => {
     },
     orderBy: [desc(checkouts.created_at)],
   });
+};
+
+export const updateCheckoutStatus = async (
+  checkoutId: number,
+  status: string
+) => {
+  const [result] = await db
+    .update(checkouts)
+    .set({ status })
+    .where(eq(checkouts.id, checkoutId));
+
+  if (result.affectedRows === 0) {
+    throw new HTTPException(404, { message: "Checkout not found" });
+  }
+
+  return await getCheckoutById(checkoutId);
 };

@@ -41,9 +41,33 @@ export default function Categories() {
     category.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDeleteClick = (id: number) => {
-    setCategoryToDelete(id);
-    setDeleteModalOpen(true);
+  const handleDeleteClick = async (id: number) => {
+    const loadingToast = toast.loading("Memeriksa ketergantungan kategori...");
+    try {
+      // Check if category is used by any product
+      const response = await api.get("/products");
+      const products = response.data.data;
+
+      const isUsed = products.some(
+        (product: any) => product.category_id === id
+      );
+
+      toast.dismiss(loadingToast);
+
+      if (isUsed) {
+        toast.error(
+          "Kategori tidak dapat dihapus karena sedang digunakan oleh produk."
+        );
+        return;
+      }
+
+      setCategoryToDelete(id);
+      setDeleteModalOpen(true);
+    } catch (error) {
+      console.error("Failed to check category usage", error);
+      toast.dismiss(loadingToast);
+      toast.error("Gagal memeriksa status kategori");
+    }
   };
 
   const handleConfirmDelete = async () => {

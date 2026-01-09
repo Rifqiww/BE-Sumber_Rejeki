@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
-import { Eye, Search, X } from "lucide-react";
+import { Eye, Search, X, ChevronDown, Check } from "lucide-react";
 import PageHeader from "../components/PageHeader";
+import { StatusBadge } from "../components/StatusBadge";
+import { StatusDropdown } from "../components/StatusDropdown";
 
 interface Order {
   id: number;
   total_price: number;
   created_at: string;
+  status: string;
   user: { name: string; email: string };
   address: { address: string; zip_code: number };
   payment: { status: string; method: string; provider: string } | null;
@@ -22,50 +25,120 @@ export default function Orders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Constants
+  const STATUS_OPTIONS = [
+    "Belum dibayar",
+    "Sedang dikirim",
+    "Berhasil",
+    "Dibatalkan",
+  ];
+
+  // Click outside to close filter
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest("#filter-dropdown-container")) {
+        setIsFilterOpen(false);
+      }
+    };
+    if (isFilterOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isFilterOpen]);
 
   useEffect(() => {
     fetchOrders();
   }, []);
 
   const fetchOrders = async () => {
+    setIsLoading(true);
     try {
+      console.log("Fetching orders from API...");
       const response = await api.get("/checkouts");
-      setOrders(response.data.data);
+      console.log("API Response:", response.data);
+      if (
+        response.data &&
+        response.data.data &&
+        response.data.data.length > 0
+      ) {
+        setOrders(response.data.data);
+      } else {
+        console.warn(
+          "API returned empty data, falling back to dummy data for testing."
+        );
+        throw new Error("Empty API data");
+      }
     } catch (error) {
-      console.error("Failed to fetch orders", error);
+      console.error("Failed to fetch orders from API", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filteredOrders = orders.filter(
-    (order) =>
+  const toggleStatus = (status: string) => {
+    if (status === "Semua") {
+      setSelectedStatuses([]);
+      return;
+    }
+    setSelectedStatuses((prev) =>
+      prev.includes(status)
+        ? prev.filter((s) => s !== status)
+        : [...prev, status]
+    );
+  };
+
+  const filteredOrders = orders.filter((order: Order) => {
+    const matchesSearch =
       order.id.toString().includes(searchQuery) ||
-      order.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.user.email.toLowerCase().includes(searchQuery.toLowerCase())
+      order.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.user?.email?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesStatus =
+      selectedStatuses.length === 0 || selectedStatuses.includes(order.status);
+
+    return matchesSearch && matchesStatus;
+  });
+
+  useEffect(() => {
+    console.log("Current Orders State:", orders);
+    console.log("Filtered Orders:", filteredOrders);
+  }, [orders, filteredOrders]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
+
+  const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedOrders = filteredOrders.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE
   );
 
-  const getStatusColor = (status?: string) => {
-    switch (status?.toLowerCase()) {
-      case "paid":
-      case "success":
-      case "settlement":
-        return "bg-green-50 text-green-700 border-green-200";
-      case "pending":
-        return "bg-yellow-50 text-yellow-700 border-yellow-200";
-      case "failed":
-      case "cancel":
-        return "bg-red-50 text-red-700 border-red-200";
-      default:
-        return "bg-tertiary/50 text-quaternary border-tertiary-dark/20";
-    }
+  // Reset page when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedStatuses]);
+
+  // Helper for Filter Button Label
+  const getFilterLabel = () => {
+    if (selectedStatuses.length === 0) return "Semua Status";
+    if (selectedStatuses.length === 1) return selectedStatuses[0];
+    return `${selectedStatuses.length} Status Dipilih`;
   };
+
   return (
-    
     <div>
-      <PageHeader title="Pesanan" description="Halaman untuk mengelola pesanan" />
+      <PageHeader
+        title="Pesanan"
+        description="Halaman untuk mengelola pesanan"
+      />
       <div className="bg-[#FFFBF2] rounded-4xl shadow-sm border border-primary/5 overflow-hidden">
-        <div className="p-6 border-b border-primary/5 flex gap-4 bg-tertiary/30">
+        <div className="p-6 border-b border-primary/5 flex flex-col sm:flex-row gap-4 bg-tertiary/30">
+          {/* Search Input */}
           <div className="relative flex-1 max-w-md">
             <Search
               className="absolute left-4 top-1/2 -translate-y-1/2 text-quaternary"
@@ -78,6 +151,70 @@ export default function Orders() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+          </div>
+
+          {/* Multi-Select Filter Dropdown */}
+          <div className="relative" id="filter-dropdown-container">
+            <button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className={`flex items-center justify-between gap-3 px-5 py-3.5 bg-white border-2 rounded-2xl cursor-pointer min-w-[200px] transition-all shadow-sm outline-none font-bold text-sm ${
+                isFilterOpen
+                  ? "border-secondary ring-2 ring-secondary/10 text-primary"
+                  : "border-transparent hover:border-secondary/50 text-quaternary hover:text-primary"
+              }`}
+            >
+              <span className="truncate">{getFilterLabel()}</span>
+              <ChevronDown
+                size={16}
+                className={`transition-transform duration-300 ${
+                  isFilterOpen ? "rotate-180 text-secondary" : "text-quaternary"
+                }`}
+              />
+            </button>
+
+            {isFilterOpen && (
+              <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-xl border border-primary/5 z-50 overflow-hidden animate-scale-in w-full min-w-[220px]">
+                <div className="p-2 space-y-1">
+                  {/* Option: Semua */}
+                  <button
+                    onClick={() => toggleStatus("Semua")}
+                    className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-between ${
+                      selectedStatuses.length === 0
+                        ? "bg-secondary/10 text-primary"
+                        : "text-quaternary hover:bg-tertiary/30 hover:text-primary"
+                    }`}
+                  >
+                    Semua
+                    {selectedStatuses.length === 0 && (
+                      <Check size={14} className="text-secondary" />
+                    )}
+                  </button>
+
+                  <div className="h-px bg-primary/5 my-1" />
+
+                  {/* Status Options */}
+                  {STATUS_OPTIONS.map((status) => {
+                    const isSelected = selectedStatuses.includes(status);
+                    return (
+                      <button
+                        key={status}
+                        onClick={() => toggleStatus(status)}
+                        className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-between ${
+                          isSelected
+                            ? "bg-secondary/10 text-primary"
+                            : "text-quaternary hover:bg-tertiary/30 hover:text-primary"
+                        }`}
+                      >
+                        {status}
+                        {isSelected && (
+                          <Check size={14} className="text-secondary" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -125,57 +262,103 @@ export default function Orders() {
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="hover:bg-tertiary/30 transition-colors group"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">
-                      #{order.id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-bold text-primary">
-                        {order.user.name}
-                      </div>
-                      <div className="text-xs text-quaternary">
-                        {order.user.email}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-quaternary font-medium">
-                      {new Date(order.created_at).toLocaleDateString("id-ID")}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">
-                      Rp {Number(order.total_price).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-3 py-1.5 inline-flex text-xs leading-5 font-bold rounded-xl border ${getStatusColor(
-                          order.payment?.status
-                        )}`}
-                      >
-                        {order.payment?.status || "Pending"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => setSelectedOrder(order)}
-                        className="p-2.5 text-primary hover:bg-secondary/20 rounded-xl transition-colors"
-                        title="Lihat Detail"
-                      >
-                        <Eye size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                paginatedOrders.map((order: Order) => {
+                  console.log("Rendering Order Row:", order.id);
+                  return (
+                    <tr
+                      key={order.id}
+                      className="hover:bg-tertiary/30 transition-colors group"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">
+                        #{order.id}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-bold text-primary">
+                          {order.user?.name || "No Name"}
+                        </div>
+                        <div className="text-xs text-quaternary">
+                          {order.user?.email || "No Email"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-quaternary font-medium">
+                        {order.created_at
+                          ? new Date(order.created_at).toLocaleDateString(
+                              "id-ID"
+                            )
+                          : "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">
+                        Rp {Number(order.total_price || 0).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <StatusDropdown
+                          orderId={order.id}
+                          currentStatus={order.status || "Belum dibayar"}
+                          onStatusUpdate={fetchOrders}
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={() => setSelectedOrder(order)}
+                          className="p-2.5 text-primary hover:bg-secondary/20 rounded-xl transition-colors"
+                          title="Lihat Detail"
+                        >
+                          <Eye size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {filteredOrders.length > 0 && (
+          <div className="px-6 py-4 border-t border-primary/5 bg-tertiary/10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white border border-primary/5 hover:bg-tertiary/50 text-primary cursor-pointer"
+              >
+                Sebelumnya
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${
+                        currentPage === page
+                          ? "bg-primary text-secondary shadow-lg shadow-primary/20"
+                          : "bg-white border border-primary/5 text-quaternary hover:bg-tertiary/50 hover:text-primary"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
+              </div>
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white border border-primary/5 hover:bg-tertiary/50 text-primary cursor-pointer"
+              >
+                Selanjutnya
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {selectedOrder && (
         <div className="fixed inset-0 bg-primary/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#FFFBF2] rounded-4xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-scale-in border border-primary/10">
+          <div className="bg-[#FFFBF2] rounded-4xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-scale-in border border-primary/10 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
             <div className="flex justify-between items-center p-8 border-b border-primary/5 sticky top-0 bg-[#FFFBF2] z-10">
               <h2 className="text-2xl font-bold text-primary">
                 Detail Pesanan #{selectedOrder.id}
@@ -215,24 +398,27 @@ export default function Orders() {
 
                 <div>
                   <h3 className="text-sm font-bold text-quaternary uppercase tracking-wider mb-4">
-                    Status Pembayaran
+                    Status Pesanan
                   </h3>
-                  <div className="bg-white p-6 rounded-2xl border border-primary/5 shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
+                  <div className="bg-white p-6 rounded-2xl border border-primary/5 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
                       <span className="text-sm text-quaternary font-medium">
-                        Status
+                        Status Pesanan
                       </span>
-                      <span
-                        className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-xl border ${getStatusColor(
-                          selectedOrder.payment?.status
-                        )}`}
-                      >
-                        {selectedOrder.payment?.status || "Pending"}
-                      </span>
+                      <StatusBadge status={selectedOrder.status} size="md" />
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-quaternary font-medium">
-                        Metode
+                        Status Pembayaran
+                      </span>
+                      <StatusBadge
+                        status={selectedOrder.payment?.status || "Pending"}
+                        size="sm"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-quaternary font-medium">
+                        Metode Pembayaran
                       </span>
                       <span className="text-sm font-bold text-primary uppercase">
                         {selectedOrder.payment?.method || "-"}
@@ -265,22 +451,24 @@ export default function Orders() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-primary/5">
-                      {selectedOrder.productCheckouts.map((item, index) => (
-                        <tr key={index}>
-                          <td className="px-5 py-3 text-sm font-medium text-primary">
-                            {item.product.name}
-                          </td>
-                          <td className="px-5 py-3 text-sm text-quaternary text-right">
-                            Rp {Number(item.product.price).toLocaleString()}
-                          </td>
-                          <td className="px-5 py-3 text-sm text-quaternary text-right">
-                            {item.quantity}
-                          </td>
-                          <td className="px-5 py-3 text-sm font-bold text-primary text-right">
-                            Rp {Number(item.subtotal).toLocaleString()}
-                          </td>
-                        </tr>
-                      ))}
+                      {selectedOrder.productCheckouts.map(
+                        (item: any, index: number) => (
+                          <tr key={index}>
+                            <td className="px-5 py-3 text-sm font-medium text-primary">
+                              {item.product.name}
+                            </td>
+                            <td className="px-5 py-3 text-sm text-quaternary text-right">
+                              Rp {Number(item.product.price).toLocaleString()}
+                            </td>
+                            <td className="px-5 py-3 text-sm text-quaternary text-right">
+                              {item.quantity}
+                            </td>
+                            <td className="px-5 py-3 text-sm font-bold text-primary text-right">
+                              Rp {Number(item.subtotal).toLocaleString()}
+                            </td>
+                          </tr>
+                        )
+                      )}
                     </tbody>
                     <tfoot className="bg-tertiary/30">
                       <tr>
@@ -288,7 +476,7 @@ export default function Orders() {
                           colSpan={3}
                           className="px-5 py-4 text-sm font-bold text-primary text-right"
                         >
-                          Total Amount
+                          Total Pembayaran
                         </td>
                         <td className="px-5 py-4 text-lg font-bold text-secondary text-right">
                           Rp{" "}

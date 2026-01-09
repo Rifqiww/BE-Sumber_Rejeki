@@ -4,59 +4,299 @@ import {
   DollarSign,
   Package,
   ShoppingCart,
-  TrendingUp,
   Check,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import ReactApexChart from "react-apexcharts";
 import PageHeader from "../components/PageHeader";
+import api from "../services/api";
+
+interface Order {
+  id: number;
+  total_price: number;
+  created_at: string;
+  status: string;
+  payment: { status: string } | null;
+  productCheckouts: {
+    quantity: number;
+    subtotal: number;
+    product: { price: number };
+  }[];
+  user: { name: string; email: string };
+}
 
 export default function Dashboard() {
   const [timeRange, setTimeRange] = useState("7 Hari Terakhir");
   const [isTimeRangeOpen, setIsTimeRangeOpen] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   const timeRanges = [
     "7 Hari Terakhir",
     "30 Hari Terakhir",
-    "Bulan Ini",
-    "Tahun Ini",
+    "1 Tahun Terakhir",
   ];
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const response = await api.get("/checkouts");
+
+      if (response.data && response.data.data) {
+        // Sort by newest first
+        const sortedData = response.data.data.sort(
+          (a: Order, b: Order) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        setOrders(sortedData);
+      }
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error);
+    }
+  };
+
+  const isOrderPaid = (order: Order) => {
+    const validStatuses = ["Berhasil", "Sedang dikirim"];
+    const validPaymentStatuses = ["settlement", "capture"];
+
+    return (
+      validStatuses.includes(order.status) ||
+      (order.payment && validPaymentStatuses.includes(order.payment.status))
+    );
+  };
+
+  const calculatedStats = useMemo(() => {
+    const totalOrders = orders.length;
+
+    const totalProducts = orders.reduce((acc, order) => {
+      return (
+        acc +
+        order.productCheckouts.reduce((sum, item) => sum + item.quantity, 0)
+      );
+    }, 0);
+
+    const totalRevenue = orders.reduce((acc, order) => {
+      return isOrderPaid(order) ? acc + order.total_price : acc;
+    }, 0);
+
+    return { totalOrders, totalProducts, totalRevenue };
+  }, [orders]);
+
+  const chartData = useMemo(() => {
+    const categories: string[] = [];
+    const dataPoints: number[] = [];
+    const now = new Date(); // Use local time
+
+    if (timeRange === "1 Tahun Terakhir") {
+      // Rolling 12 Months logic
+      const tempData: { [key: string]: number } = {};
+
+      const formatMonthKey = (date: Date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        return `${y}-${m}`;
+      };
+
+      // Generate last 12 months (0 to 11 months ago)
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = formatMonthKey(d);
+        const label = d.toLocaleDateString("id-ID", { month: "short" });
+        categories.push(label);
+        tempData[key] = 0;
+      }
+
+      // Fill Data
+      orders.forEach((order) => {
+        if (!isOrderPaid(order)) return;
+
+        const orderDate = new Date(order.created_at);
+        const key = formatMonthKey(orderDate);
+
+        if (tempData[key] !== undefined) {
+          tempData[key] += order.total_price;
+        }
+      });
+
+      // Map to array matching categories
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = formatMonthKey(d);
+        dataPoints.push(tempData[key]);
+      }
+    } else {
+      // Daily logic (7 or 30 days)
+      const days = timeRange === "30 Hari Terakhir" ? 30 : 7;
+      const tempData: { [key: string]: number } = {};
+
+      // helper to format date as YYYY-MM-DD in local time
+      const formatDateKey = (date: Date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const d = String(date.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      };
+
+      // Generate last N days
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const key = formatDateKey(d);
+
+        categories.push(
+          d.toLocaleDateString("id-ID", { day: "numeric", month: "short" })
+        );
+        tempData[key] = 0;
+      }
+
+      // Fill Data
+      orders.forEach((order) => {
+        if (!isOrderPaid(order)) return;
+
+        const orderDate = new Date(order.created_at);
+        const key = formatDateKey(orderDate);
+
+        if (tempData[key] !== undefined) {
+          tempData[key] += order.total_price;
+        }
+      });
+
+      // Map to array matching categories order
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const key = formatDateKey(d);
+        dataPoints.push(tempData[key]);
+      }
+    }
+
+    return {
+      series: [
+        {
+          name: "Pendapatan",
+          data: dataPoints,
+        },
+      ],
+      options: {
+        chart: {
+          type: "area" as const,
+          height: 350,
+          toolbar: {
+            show: false,
+          },
+          fontFamily: "inherit",
+          animations: {
+            enabled: true,
+          },
+        },
+        colors: ["#8B4513"],
+        fill: {
+          type: "gradient",
+          gradient: {
+            shadeIntensity: 1,
+            opacityFrom: 0.7,
+            opacityTo: 0.2,
+            stops: [0, 90, 100],
+          },
+        },
+        dataLabels: {
+          enabled: false,
+        },
+        stroke: {
+          curve: "smooth" as const,
+          width: 2,
+        },
+        xaxis: {
+          categories: categories,
+          axisBorder: {
+            show: false,
+          },
+          axisTicks: {
+            show: false,
+          },
+          labels: {
+            style: {
+              colors: "#9ca3af",
+              fontSize: "12px",
+            },
+          },
+        },
+        yaxis: {
+          labels: {
+            style: {
+              colors: "#9ca3af",
+              fontSize: "12px",
+            },
+            formatter: (value: number) => {
+              if (value >= 1000000) {
+                return "Rp " + (value / 1000000).toFixed(1) + "jt";
+              }
+              return "Rp " + (value / 1000).toLocaleString("id-ID") + "k";
+            },
+          },
+        },
+        grid: {
+          borderColor: "#f3f4f6",
+          strokeDashArray: 4,
+          yaxis: {
+            lines: {
+              show: true,
+            },
+          },
+        },
+        tooltip: {
+          theme: "light",
+          y: {
+            formatter: (value: number) => {
+              return new Intl.NumberFormat("id-ID", {
+                style: "currency",
+                currency: "IDR",
+              }).format(value);
+            },
+          },
+        },
+      },
+    };
+  }, [orders, timeRange]);
 
   const stats = [
     {
       label: "Total Pesanan",
-      value: "0",
+      value: calculatedStats.totalOrders.toString(),
       icon: ShoppingCart,
       color: "text-secondary",
       bg: "bg-primary",
-      trend: "+0%",
     },
     {
-      label: "Total Produk",
-      value: "0",
+      label: "Total Produk Terjual",
+      value: calculatedStats.totalProducts.toString(),
       icon: Package,
       color: "text-primary",
       bg: "bg-secondary",
-      trend: "+0%",
     },
     {
       label: "Total Pendapatan",
-      value: "Rp 0",
+      value: `Rp ${calculatedStats.totalRevenue.toLocaleString("id-ID")}`,
       icon: DollarSign,
       color: "text-tertiary",
       bg: "bg-green-600",
-      trend: "+0%",
     },
   ];
 
   return (
     <div>
-      <PageHeader title="Dashboard" description="Selamat datang di dashboard Admin" />
+      <PageHeader
+        title="Dashboard"
+        description="Selamat datang di dashboard Admin"
+      />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {stats.map((stat, index) => {
+        {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <div
-              key={index}
+              key={stat.label}
               className="bg-[#FFFBF2] p-6 rounded-4xl shadow-sm border border-primary/5 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 transition-all duration-300 group"
             >
               <div className="flex items-start justify-between mb-4">
@@ -64,10 +304,6 @@ export default function Dashboard() {
                   className={`p-4 rounded-2xl ${stat.bg} shadow-lg shadow-primary/10 group-hover:scale-110 transition-transform duration-300`}
                 >
                   <Icon className={`w-6 h-6 ${stat.color}`} />
-                </div>
-                <div className="flex items-center text-xs font-bold text-primary bg-secondary/20 px-3 py-1.5 rounded-full border border-secondary/30">
-                  <TrendingUp size={12} className="mr-1" />
-                  {stat.trend}
                 </div>
               </div>
 
@@ -85,11 +321,12 @@ export default function Dashboard() {
       </div>
 
       <div className="w-full">
-        <div className="lg:col-span-2 bg-[#FFFBF2] p-8 rounded-4xl shadow-sm border border-primary/5">
+        {/* Chart Section */}
+        <div className="bg-[#FFFBF2] p-8 rounded-4xl shadow-sm border border-primary/5">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-primary flex items-center gap-2">
               <Activity size={20} className="text-secondary" />
-              Aktivitas Terbaru
+              Aktivitas Pendapatan
             </h2>
             <div className="relative group">
               <div
@@ -144,11 +381,14 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          <div className="h-80 flex items-center justify-center text-quaternary/40 bg-tertiary/50 rounded-3xl border-2 border-dashed border-primary/10">
-            <div className="text-center">
-              <Activity size={48} className="mx-auto mb-2 opacity-20" />
-              <p className="font-medium">Placeholder Grafik Aktivitas</p>
-            </div>
+          <div className="h-80 w-full relative">
+            <ReactApexChart
+              options={chartData.options}
+              series={chartData.series}
+              type="area"
+              height="100%"
+              width="100%"
+            />
           </div>
         </div>
       </div>

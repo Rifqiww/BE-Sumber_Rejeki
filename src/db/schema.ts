@@ -152,6 +152,7 @@ export const checkouts = mysqlTable("checkouts", {
     .references(() => users.id),
   total_price: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
   created_at: timestamp("created_at").defaultNow(),
+  status: varchar("status", { length: 155 }).notNull().default("Belum dibayar"),
 });
 
 export const checkoutsRelations = relations(checkouts, ({ one, many }) => ({

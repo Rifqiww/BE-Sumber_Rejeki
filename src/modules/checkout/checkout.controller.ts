@@ -3,8 +3,9 @@ import {
   createCheckout,
   getCheckoutById,
   getAllCheckouts as getAllCheckoutsService,
+  updateCheckoutStatus as updateCheckoutStatusService,
 } from "./checkout.service";
-import { checkoutSchema } from "./checkout.schema";
+import { checkoutSchema, updateStatusSchema } from "./checkout.schema";
 import { apiResponse } from "../../utils/response";
 
 export const processCheckout = async (c: Context) => {
@@ -30,4 +31,13 @@ export const getCheckout = async (c: Context) => {
 export const getAllCheckouts = async (c: Context) => {
   const result = await getAllCheckoutsService();
   return apiResponse(c, 200, "All checkouts retrieved", result);
+};
+
+export const updateStatus = async (c: Context) => {
+  const id = Number(c.req.param("id"));
+  const body = await c.req.json();
+  const validated = updateStatusSchema.parse(body);
+
+  const result = await updateCheckoutStatusService(id, validated.status);
+  return apiResponse(c, 200, "Status updated successfully", result);
 };
