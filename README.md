@@ -1,39 +1,80 @@
 # UMKM Backend & Admin Dashboard
 
-This project consists of a Bun-based Hono backend and a Vite-based react admin frontend.
+This project is a robust Fullstack application designed for managing UMKM (MSME) operations. It features a high-performance backend built with **Bun** and **Hono**, paired with a modern, responsive Admin Dashboard built with **React** and **Vite**.
 
-## Prerequisites
+## 🛠️ Tech Stack
 
-- [Bun](https://bun.sh/) installed on your machine.
-- A running MySQL database (as specified in `drizzle.config.ts`).
-- Environment variables configured in `.env`.
+### Backend
 
-## Startup Steps
+- **Runtime**: [Bun](https://bun.sh/) - A fast all-in-one JavaScript runtime.
+- **Framework**: [Hono](https://hono.dev/) - A small, fast, and ultrafast web framework.
+- **Database**: MySQL.
+- **ORM**: [Drizzle ORM](https://orm.drizzle.team/) - Lightweight and type-safe TypeScript ORM.
+- **Validation**: [Zod](https://zod.dev/) - TypeScript-first schema declaration and validation.
+- **Authentication**: JWT & Bcrypt.
+- **Payments**: Midtrans.
+- **Storage**: Cloudinary (Image Hosting).
 
-### 1. Install Dependencies
+### Frontend (Admin Dashboard)
 
-Run this in the root directory:
+- **Build Tool**: [Vite](https://vitejs.dev/) - Next Generation Frontend Tooling.
+- **Framework**: [React](https://react.dev/) (TypeScript).
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/).
+- **Icons**: [Lucide React](https://lucide.dev/).
+- **Charts**: [ApexCharts](https://apexcharts.com/) (React ApexCharts).
+- **State Management**: React Hooks & Context API.
+- **Notifications**: React Hot Toast.
+
+---
+
+## ✨ Key Features
+
+- **Dashboard Analytics**: Real-time overview of Revenue, Orders, and Top Selling Products with interactive charts (Rolling 12 Months).
+- **Order Management**:
+  - View all orders with detailed status.
+  - Filter orders by status (Multi-select support).
+  - Update order statuses directly (e.g., "Belum dibayar" to "Sedang dikirim").
+- **Product Management**:
+  - CRUD operations for Products.
+  - Image upload support (Cloudinary).
+  - Category assignment.
+  - Stock and Price tracking.
+- **Category Management**:
+  - Manage product categories.
+  - **Protection**: Prevents deletion of categories currently in use by products.
+- **Secure Authentication**: Admin login with role-based protection.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- [Bun](https://bun.sh/) installed.
+- A running **MySQL** database.
+
+### 1. Installation
+
+Install dependencies for both the backend and frontend:
 
 ```bash
+# Root (Backend)
 bun install
-```
 
-And in the `admin` directory:
-
-```bash
+# Admin (Frontend)
 cd admin && bun install
 ```
 
-### 2. Configure Environment Variables
+### 2. Environment Variables
 
-Create a `.env` file in the root directory and add the following variables:
+Create a `.env` file in the **root** directory and configure your credentials:
 
 ```env
-# Server Configuration
+# Server
 PORT=3000
 JWT_SECRET=your_jwt_secret_here
 
-# Database Configuration (MySQL)
+# Database (MySQL)
 DATABASE_URL=mysql://user:password@localhost:3306/db_name
 
 # Payments (Midtrans)
@@ -47,77 +88,57 @@ CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 ```
 
-> [!NOTE]
-> The Admin dashboard currently connects to `http://localhost:3000` by default. If you change the `PORT` in your `.env`, you will need to update the `baseURL` in `admin/src/services/api.ts`.
+> **Note**: The Admin frontend expects the backend to run at `http://localhost:3000`. If you change the port, update `admin/src/services/api.ts`.
 
-### 3. Database Migration (If needed)
+### 3. Database Migration
 
-If you haven't set up the database schema yet, you can push the schema defined in `src/db/schema.ts` to your database:
+Push the database schema (defined in `src/db/schema.ts`) to your MySQL instance:
 
 ```bash
 bun x drizzle-kit push
 ```
 
-### 4. Run the Project
+### 4. Running the Project
 
-#### Start Backend (Root)
+You can run the backend and frontend continuously in separate terminals.
+
+#### ➤ Start Backend (Root)
+
+Runs the API server in watch mode:
 
 ```bash
 bun run dev
 ```
 
-_This starts the server at `src/server.ts` with hot-reload._
+#### ➤ Start Admin Dashboard
 
-#### Start Admin Dashboard
+Runs the frontend development server:
 
 ```bash
 bun run admin
 ```
 
-_This targets the `admin` folder and starts the development server._
+#### ➤ Create Admin User
 
-#### Create Admin User (Optional)
-
-If you need to initialize an admin account:
+Initialize a default admin account if needed:
 
 ```bash
 bun run create-admin
 ```
 
-## Summary of Scripts
+---
 
-| Command                | Description                             |
-| :--------------------- | :-------------------------------------- |
-| `bun run dev`          | Starts backend server (watch mode)      |
-| `bun run admin`        | Starts admin frontend                   |
-| `bun run create-admin` | Script to initialize admin user         |
-| `bun run start`        | Starts backend server (production mode) |
+## 🔧 Troubleshooting
 
-## Troubleshooting
+**Port 3000 Already in Use**
+If `bun run dev` fails with code 58, port 3000 is occupied.
 
-### 1. Error: script "dev" exited with code 58
+- **Windows**: `netstat -ano | findstr :3000` then `taskkill /PID <PID> /F`.
+- **Linux/Mac**: `lsof -i :3000` then `kill -9 <PID>`.
 
-This usually means a port is already in use.
-
-- **Cause**: You might have multiple terminal windows running the backend or another app is using port 3000.
-- **Solution**: Close any other terminal windows running the project. If you're on Windows, you might need to kill the process:
-  ```powershell
-  # Find what is using port 3000
-  netstat -ano | findstr :3000
-  # Kill the process (replace <PID> with the number from the command above)
-  taskkill /PID <PID> /F
-  ```
-
-### 2. JSON.parse: "undefined" is not valid JSON
-
-If you see this error in the browser console:
-
-- **Cause**: Invalid data stored in your browser's `localStorage` from a previous session.
-- **Solution**: I've added a fix in `AuthContext.tsx` to handle this, but you can also clear your storage:
-  1. Open Browser DevTools (F12).
-  2. Go to **Application** tab -> **Local Storage**.
-  3. Right-click your site and click **Clear**.
+**"undefined" is not valid JSON**
+Clear your browser's Local Storage for `localhost` if you encounter login loop issues from previous sessions.
 
 ---
 
-This project was created using `bun init` in bun v1.3.1. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+_Built with ❤️ using Bun & React_
