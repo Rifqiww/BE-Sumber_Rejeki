@@ -51,12 +51,12 @@ export default function Login() {
         <div className="absolute bottom-[-10%] left-[-10%] w-[700px] h-[700px] bg-primary-light/10 rounded-full blur-[120px]"></div>
       </div>
 
-      <div className="bg-tertiary p-8 md:p-12 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-white/20 relative z-10 backdrop-blur-sm">
+      <div className="bg-tertiary p-6 md:p-12 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-white/20 relative z-10 backdrop-blur-sm mx-4 md:mx-0">
         <div className="text-center mb-10">
           <div className="w-24 h-24 bg-primary rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-primary/20 transform rotate-3 hover:rotate-0 transition-all duration-500">
             <img src={LOGO} alt="Logo" className="w-14 h-14 object-contain" />
           </div>
-          <h2 className="text-3xl font-bold text-primary mb-2 tracking-tight">
+          <h2 className="text-2xl md:text-3xl font-bold text-primary mb-2 tracking-tight">
             Akses Admin
           </h2>
           <p className="text-quaternary font-medium">

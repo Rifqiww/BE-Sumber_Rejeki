@@ -13,7 +13,7 @@ export default function NotFound() {
 
       <div className="bg-tertiary p-8 md:p-12 rounded-[2.5rem] shadow-2xl w-full max-w-lg border border-white/20 relative z-10 backdrop-blur-sm text-center">
         <div className="mb-8">
-          <h1 className="text-9xl font-bold text-secondary mb-4 opacity-80">
+          <h1 className="text-6xl md:text-9xl font-bold text-secondary mb-4 opacity-80">
             404
           </h1>
           <h2 className="text-3xl font-bold text-primary mb-4">

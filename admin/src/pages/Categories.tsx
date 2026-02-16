@@ -38,7 +38,7 @@ export default function Categories() {
   };
 
   const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(searchQuery.toLowerCase())
+    category.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const handleDeleteClick = async (id: number) => {
@@ -49,14 +49,14 @@ export default function Categories() {
       const products = response.data.data;
 
       const isUsed = products.some(
-        (product: any) => product.category_id === id
+        (product: any) => product.category_id === id,
       );
 
       toast.dismiss(loadingToast);
 
       if (isUsed) {
         toast.error(
-          "Kategori tidak dapat dihapus karena sedang digunakan oleh produk."
+          "Kategori tidak dapat dihapus karena sedang digunakan oleh produk.",
         );
         return;
       }
@@ -110,9 +110,9 @@ export default function Categories() {
       />
 
       <div className="bg-[#FFFBF2] rounded-4xl shadow-sm border border-primary/5 overflow-hidden">
-        <div className="flex justify-between items-center p-6">
-          <div className="border-b border-primary/5 flex gap-4 bg-tertiary/30 min-w-2xl">
-            <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center p-6 gap-4">
+          <div className="border-b border-primary/5 flex flex-col md:flex-row gap-4 bg-tertiary/30 w-full md:w-auto">
+            <div className="relative flex-1 max-w-full md:max-w-md">
               <Search
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-quaternary"
                 size={20}
@@ -128,7 +128,7 @@ export default function Categories() {
           </div>
           <button
             onClick={() => openModal()}
-            className="bg-primary text-secondary px-6 py-3 rounded-2xl flex items-center gap-2 hover:bg-primary-dark shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all font-bold cursor-pointer"
+            className="bg-primary text-secondary px-6 py-3 rounded-2xl flex items-center justify-center gap-2 hover:bg-primary-dark shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all font-bold cursor-pointer"
           >
             <Plus size={20} />
             Tambah Kategori

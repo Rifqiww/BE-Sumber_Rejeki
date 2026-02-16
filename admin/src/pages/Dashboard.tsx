@@ -48,7 +48,7 @@ export default function Dashboard() {
         // Sort by newest first
         const sortedData = response.data.data.sort(
           (a: Order, b: Order) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
         );
         setOrders(sortedData);
       }
@@ -146,7 +146,7 @@ export default function Dashboard() {
         const key = formatDateKey(d);
 
         categories.push(
-          d.toLocaleDateString("id-ID", { day: "numeric", month: "short" })
+          d.toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
         );
         tempData[key] = 0;
       }
@@ -323,19 +323,19 @@ export default function Dashboard() {
       <div className="w-full">
         {/* Chart Section */}
         <div className="bg-[#FFFBF2] p-8 rounded-4xl shadow-sm border border-primary/5">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
             <h2 className="text-xl font-bold text-primary flex items-center gap-2">
               <Activity size={20} className="text-secondary" />
               Aktivitas Pendapatan
             </h2>
-            <div className="relative group">
+            <div className="relative group w-full md:w-auto">
               <div
                 className="relative"
                 onClick={() => setIsTimeRangeOpen(!isTimeRangeOpen)}
               >
                 <button
                   type="button"
-                  className={`appearance-none bg-white border-2 text-sm text-primary font-bold rounded-xl pl-4 pr-10 py-2.5 outline-none transition-all shadow-sm flex items-center justify-between min-w-[180px] cursor-pointer ${
+                  className={`appearance-none bg-white border-2 text-sm text-primary font-bold rounded-xl pl-4 pr-10 py-2.5 outline-none transition-all shadow-sm flex items-center justify-between w-full md:min-w-[180px] cursor-pointer ${
                     isTimeRangeOpen
                       ? "border-secondary ring-2 ring-secondary/10"
                       : "border-tertiary hover:border-secondary/50"

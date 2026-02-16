@@ -68,7 +68,7 @@ export default function Orders() {
         setOrders(response.data.data);
       } else {
         console.warn(
-          "API returned empty data, falling back to dummy data for testing."
+          "API returned empty data, falling back to dummy data for testing.",
         );
         throw new Error("Empty API data");
       }
@@ -87,7 +87,7 @@ export default function Orders() {
     setSelectedStatuses((prev) =>
       prev.includes(status)
         ? prev.filter((s) => s !== status)
-        : [...prev, status]
+        : [...prev, status],
     );
   };
 
@@ -115,7 +115,7 @@ export default function Orders() {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedOrders = filteredOrders.slice(
     startIndex,
-    startIndex + ITEMS_PER_PAGE
+    startIndex + ITEMS_PER_PAGE,
   );
 
   // Reset page when search or filter changes
@@ -137,9 +137,9 @@ export default function Orders() {
         description="Halaman untuk mengelola pesanan"
       />
       <div className="bg-[#FFFBF2] rounded-4xl shadow-sm border border-primary/5 overflow-hidden">
-        <div className="p-6 border-b border-primary/5 flex flex-col sm:flex-row gap-4 bg-tertiary/30">
+        <div className="p-6 border-b border-primary/5 flex flex-col md:flex-row gap-4 bg-tertiary/30">
           {/* Search Input */}
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1 max-w-full md:max-w-md">
             <Search
               className="absolute left-4 top-1/2 -translate-y-1/2 text-quaternary"
               size={20}
@@ -157,7 +157,7 @@ export default function Orders() {
           <div className="relative" id="filter-dropdown-container">
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`flex items-center justify-between gap-3 px-5 py-3.5 bg-white border-2 rounded-2xl cursor-pointer min-w-[200px] transition-all shadow-sm outline-none font-bold text-sm ${
+              className={`flex items-center justify-between gap-3 px-5 py-3.5 bg-white border-2 rounded-2xl cursor-pointer w-full md:min-w-[200px] transition-all shadow-sm outline-none font-bold text-sm ${
                 isFilterOpen
                   ? "border-secondary ring-2 ring-secondary/10 text-primary"
                   : "border-transparent hover:border-secondary/50 text-quaternary hover:text-primary"
@@ -283,7 +283,7 @@ export default function Orders() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-quaternary font-medium">
                         {order.created_at
                           ? new Date(order.created_at).toLocaleDateString(
-                              "id-ID"
+                              "id-ID",
                             )
                           : "-"}
                       </td>
@@ -339,7 +339,7 @@ export default function Orders() {
                     >
                       {page}
                     </button>
-                  )
+                  ),
                 )}
               </div>
               <button
@@ -467,7 +467,7 @@ export default function Orders() {
                               Rp {Number(item.subtotal).toLocaleString()}
                             </td>
                           </tr>
-                        )
+                        ),
                       )}
                     </tbody>
                     <tfoot className="bg-tertiary/30">
